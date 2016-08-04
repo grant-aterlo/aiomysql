@@ -56,7 +56,7 @@ def connect(host="localhost", user=None, password="",
             client_flag=0, cursorclass=Cursor, init_command=None,
             connect_timeout=None, read_default_group=None,
             no_delay=None, autocommit=False, echo=False,
-            local_infile=False, loop=None):
+            ssl=None, local_infile=False, loop=None):
     """See connections.Connection.__init__() for information about
     defaults."""
     coro = _connect(host=host, user=user, password=password, db=db,
@@ -68,7 +68,7 @@ def connect(host="localhost", user=None, password="",
                     connect_timeout=connect_timeout,
                     read_default_group=read_default_group,
                     no_delay=no_delay, autocommit=autocommit, echo=echo,
-                    local_infile=local_infile, loop=loop)
+                    ssl=ssl, local_infile=local_infile, loop=loop)
     return _ConnectionContextManager(coro)
 
 
@@ -93,7 +93,7 @@ class Connection:
                  client_flag=0, cursorclass=Cursor, init_command=None,
                  connect_timeout=None, read_default_group=None,
                  no_delay=None, autocommit=False, echo=False,
-                 local_infile=False, loop=None):
+                 ssl=None, local_infile=False, loop=None):
         """
         Establish a connection to the MySQL database. Accepts several
         arguments:
@@ -125,6 +125,7 @@ class Connection:
         :param no_delay: Disable Nagle's algorithm on the socket
         :param autocommit: Autocommit mode. None means use server default.
             (default: False)
+        :param ssl: an ssl.SSLContext object if passed use ssl authentication
         :param local_infile: boolean to enable the use of LOAD DATA LOCAL
             command. (default: False)
         :param loop: asyncio loop
@@ -163,6 +164,7 @@ class Connection:
         self._db = db
         self._no_delay = no_delay
         self._echo = echo
+        self._ssl = ssl
 
         self._unix_socket = unix_socket
         if charset:
@@ -453,7 +455,7 @@ class Connection:
             else:
                 self._reader, self._writer = yield from \
                     asyncio.open_connection(self._host, self._port,
-                                            loop=self._loop)
+                                            loop=self._loop, ssl=self._ssl)
                 self.host_info = "socket %s:%d" % (self._host, self._port)
 
             # do not set no delay in case of unix_socket
